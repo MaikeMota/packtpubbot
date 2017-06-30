@@ -1,4 +1,7 @@
 /config.json
 /.settings/
 /node_modules/
+/.vscode/
 *.project
+*.bat
+log.txt
