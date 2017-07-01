@@ -1,106 +1,55 @@
-'use strict';
-
 const config = require('./config.json');
 const request = require('request').defaults({
     jar: true // enable cookie support, default is false
 });
-const path = require('path');
-const fs = require("fs");
 const cheerio = require('cheerio');
-const PushBullet = require('pushbullet');
+const TelegramBot = require('node-telegram-bot-api');
+const bot = new TelegramBot(config.botToken);
+const packtpubFreeLearningUrl = 'https://www.packtpub.com/packt/offers/free-learning';
 
-var packtpubBaseUrl = 'https://www.packtpub.com';
-var packtpubDownloadEbookUrl = packtpubBaseUrl + "/ebook_download/{ebook_id}/pdf";
-var packtpubFreeEbookUrl = packtpubBaseUrl + '/packt/offers/free-learning';
-var pusher = new PushBullet(config.pushbullet.apiKey);
-var userLoginForm;
-var freeEbookUrl;
-var ebookId;
-var downloadUrl;
-var freeEbookTitle;
-var formData = {
-    email: config.packtpub.email,
-    password: config.packtpub.password,
-    op: 'Login',
-    form_build_id: '',
-    form_id: ''
-};
-console.log("----- Start claim free ebook from packtpub -----");
-request(packtpubFreeEbookUrl, function(error, response, body) {
-    if (error) {
-        console.error('first get request', error);
-    }
-    if (!error && response.statusCode == 200) {
-        var $ = cheerio.load(body);
-        userLoginForm = $('#packt-user-login-form');
-        formData.form_build_id = userLoginForm.find('[name="form_build_id"]').val();
-        formData.form_id = userLoginForm.find('[name="form_id"]').val();
-        var relativeLink = $('a.twelve-days-claim').attr("href");
-        freeEbookUrl = packtpubBaseUrl + relativeLink;
-        ebookId =  relativeLink.replace(/\/freelearning-claim\/([0-9]*)\/[0-9]*/g, "$1")
-        downloadUrl = packtpubDownloadEbookUrl.replace("{ebook_id}", ebookId);
-        console.log("Free Ebook Url: " + freeEbookUrl);
-        freeEbookTitle = $('.dotd-title').find('h2').text().trim();
-        console.log("Claim Title: " + freeEbookTitle);
-        request.post({
-            url: packtpubFreeEbookUrl,
-            formData: formData
-        }, function(error, response, body) {
-            if (error) {
-                console.error('auth failure', error);
-            }
-            if (!error && !body) {
-                request(freeEbookUrl, function(error, response, body) {
-                    if (error) {
-                        console.error('claim error', error);
-                        inform('packtpub claim bot error', "Got a error please check this!", function(error, response) {
-                            if (error) {
-                                console.error('pushbullet failure', error);
-                            }
-                        });
-                    }
-                    if (!error && response.statusCode == 200) {
-                        if(config.downloadAfterClaim){
-                            request({
-                                    followAllRedirects: true,
-                                    url: downloadUrl
-                            }).pipe(
-                                fs.createWriteStream(
-                                    (config.outputDirectory != null? (config.outputDirectory + path.sep) : '')  + freeEbookTitle + "." + config.dowloadFormat
-                                ));
-                        }
-                        inform('packtpub claim bot', "Sir, I've just claimed " + freeEbookTitle + " for you.", function(error, response) {
-                            if (error) {
-                                console.error('pushbullet failure', error);
-                            }
-                        });
-                        console.log("----- Done... -----");
-                    }
-                });
-            } else {
-              console.error('auth failure', error);
-            }
-        });
-    }
+console.log(`----- Start requesting book name from packtpub (${new Date().toLocaleString()}) -----`);
+
+get(packtpubFreeLearningUrl).then((body) => {
+    var $ = cheerio.load(body);
+    let bookName = $('.dotd-title').find('h2').text().trim();
+    let bookCover = $('.bookimage')[0].attribs.src;
+    console.log("Book of the Day: " + bookName);
+    inform(config.receiverId, bookName, bookCover);
+    console.log(`----- End requesting book name from packtpub (${new Date().toLocaleString()}) -----`);
+}).catch(error => {
+    console.error('Error while requesting book name.');
+    console.error(error);
 });
 
-function inform(name, content, handler){
-  if(config.informBy=="telegram"){
-    informTelegram(content, config.telegram.receiverId, config.telegram.botToken);
-  } else if(config.informBy=="pushbullet"){
-    informPusher(name, content, handler);
-  } else {
-    console.log(content);
-  }
+
+/**
+ * Wraps the request from node in a promise
+ * @param {String} targetUrl the target Url
+ */
+function get(targetUrl) {
+    return new Promise((resolve, reject) => {
+        request(targetUrl, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                resolve(body);
+            } else {
+                reject(error);
+            }
+        });
+    });
 }
 
-function informPusher(name, content, handler){
-  pusher.note('', name, content, handler);
-}
-
-function informTelegram(content, receiver, token) {
-  var TelegramBot = require('node-telegram-bot-api');
-  // just send the message
-  var bot = new TelegramBot(token);
-  bot.sendMessage(receiver, content);
+/**
+ * Notify the receiver about the book of the day
+ * 
+ * @param {String} chatId The id of the chat with the user/group.
+ * @param {String} bookName The name of the book.
+ * @param {String} bookCover The link to the book cover.
+ */
+async function inform(chatId, bookName, bookCover) {
+    await bot.sendChatAction(chatId, 'typing');
+    await bot.sendMessage(chatId, `Sr, the book of the day: <strong>${bookName}</strong>`, { "parse_mode": "html" });
+    await bot.sendChatAction(chatId, 'upload_photo');
+    await bot.sendPhoto(chatId, `${bookCover}`);
+    await bot.sendChatAction(chatId, 'typing');
+    await bot.sendPhoto(chatId, `<a href='${packtpubFreeLearningUrl}'></a>`, { "parse_mode": "html" });
 }
