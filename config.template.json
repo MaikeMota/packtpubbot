@@ -1,6 +1,6 @@
 {
   "telegram": {
     "botToken" : "{Your bot key}",
-    "receiverId" : "{@chat or @grou id}"
+    "receiversIds" : ["{@chat or @grou id}"]
   }
 }
