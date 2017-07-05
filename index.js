@@ -12,10 +12,12 @@ console.log(`----- Start requesting book name from packtpub (${new Date().toLoca
 get(packtpubFreeLearningUrl).then((body) => {
     let ebookData = processBody(body);
     console.log("Book of the Day: " + ebookData.name);
-    inform(config.receiverId, ebookData.name, ebookData.cover).then(() => {
-        console.log(`----- End requesting book name from packtpub (${new Date().toLocaleString()}) -----`);
-        process.exit(0);
-    });
+    for (let receiverId of config.receiversIds) {
+        inform(receiverId, ebookData.name, ebookData.cover).then(() => {
+            console.log(`----- End requesting book name from packtpub (${new Date().toLocaleString()}) -----`);
+            process.exit(0);
+        });
+    }
 });
 
 /**
