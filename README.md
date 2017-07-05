@@ -1,78 +1,42 @@
-# packtpubbot
+# Packtpub Notifier
 
-A bot for claim daily free learning ebooks from packtpub. It also notify you over [Pushbullet](https://www.pushbullet.com/). It's designed as cron job task on a [Raspberry Pi](https://www.raspberrypi.org/).
+A bot to notify about the daily free ebooks from packtpub. 
+
+----------
 
 ## Requirements
-* [node.js](https://nodejs.org), version 6.0.0+ (only tested on v6)
+* [node.js](https://nodejs.org), version 8.1.3+ (only tested on v8.1.3)
 
 ## How to install
 ```bash
 git clone https://github.com/maikemota/packtpubbot.git
 ```
+----------
 
 ## Configuration
 
-The bot uses a json configuration file for providing login credentials. Add file names config.json in your working directory where you cloned. Example of config.json:
+The bot uses a json configuration file to get the bot token and receivers' Ids.
+Rename the config.template.json file where you cloned the repository and sets the requested data. Example of config.json:
 
 ```json
 {
-  "informBy": "",
-  "downloadAfterClaim": true,
-  "outputDirectory": null,
-  "packtpub": {
-    "email": "put your email here",
-    "password": "put your password here"
-  },
-  "pushbullet": {
-    "apiKey": "put your pushbullet api key here"
-  },
-    "telegram": {
-    "botToken" : "put your telegram bot token here",
-    "receiverId" : "put destination user id here"
-  }
+  "botToken": "{YourTelegramBotToken}",
+  "receiversIds": ["{receiverId1}, {receiverId2}, {receiverId3}"]
 }
 ```
-### informBy
-Configure the desired notification platform, if leaves it blank will be output to console.
-**Aceptable values:**
-- telegram
-- pushbullet
 
-### downloadAfterClaim
-Configure to download the ebook after claim.
-**Default value:** *true*
-**Aceptable values:**
-- true
-- false
+### botToken
 
-### outputDirectory
-Configure the desired directory to output the ebook. 
-*The ebook will be download at the same directory as the index.js if leaves this null*
-**Default value:** *null*
+Token of the Telegram's bot, maybe you need to talk with the [BotFather](https://telegram.me/BotFather) 
 
-### outputFormat
-Configure the desired format to download the ebook.
-**Default value:** *pdf*
-**Aceptable values:**
-- pdf
-- epub
-- mobi
+----------
 
-### packtpub
-#### email
-email to login into https://www.packtpub.com
-#### password
-password to login into https://www.packtpub.com
+### receiversIds
 
-### pushbullet
-#### apiKey
-apiKey provided by https://www.pushbullet.com
+An array of receivers id, this could be a individual chat id or a group chat id.
 
-### telegram
-#### botToken
-the bot token provided by botFather
-#### receiverId
-the telegram user id to receive the notification
+----------
+
 
 ## How to use
 
@@ -94,3 +58,12 @@ Add following statements for every day cron job at 9 am:
 ```bash
 0 9 * * * <PATH_TO_NODE>/node <PATH_TO_REPO>/index.js >> /var/log/packtpub.log 2>&1
 ```
+
+----------
+
+## Don't want to host and run by yourself? 
+
+ [Join us](https://t.me/joinchat/Db5Zqwsjm3WixWcPzWLzOg) and get notified about the book of the day!
+
+
+# That's all folks ;)
